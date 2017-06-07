@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
@@ -89,4 +90,21 @@ public class HomeController {
 
         return modelAndView;
     }
+
+    @RequestMapping("/json")
+    @ResponseBody
+    public User userToJson() {
+
+        User user = userService.get("1");
+
+        return user;
+    }
+
+    @RequestMapping("/jsonList")
+    @ResponseBody
+    public List<User> listToJson(){
+        List<User> list = userService.getList();
+        return list;
+    }
+
 }
