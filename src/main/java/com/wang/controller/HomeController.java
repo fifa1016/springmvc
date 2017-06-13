@@ -1,5 +1,19 @@
 package com.wang.controller;
 
+import com.alibaba.rocketmq.client.consumer.DefaultMQPushConsumer;
+import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
+import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import com.alibaba.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import com.alibaba.rocketmq.client.exception.MQBrokerException;
+import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.client.producer.DefaultMQProducer;
+import com.alibaba.rocketmq.client.producer.MQProducer;
+import com.alibaba.rocketmq.client.producer.SendResult;
+import com.alibaba.rocketmq.common.consumer.ConsumeFromWhere;
+import com.alibaba.rocketmq.common.message.Message;
+import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.protocol.heartbeat.MessageModel;
+import com.alibaba.rocketmq.remoting.exception.RemotingException;
 import com.wang.pojo.User;
 import com.wang.service.impl.UserServiceImpl;
 import org.slf4j.Logger;
@@ -102,9 +116,60 @@ public class HomeController {
 
     @RequestMapping("/jsonList")
     @ResponseBody
-    public List<User> listToJson(){
+    public List<User> listToJson() {
         List<User> list = userService.getList();
         return list;
     }
 
+
+    //----- RocketMQ ----
+    @RequestMapping("/send")
+    @ResponseBody
+    public String send() {
+        DefaultMQProducer producer = new DefaultMQProducer("group2");
+        try {
+            producer.setNamesrvAddr("localhost:9876");
+            producer.setInstanceName("producer_instance");
+            producer.start();
+            Message msg = new Message("Topic1", "tag1", "Order1", "msg_bytes".getBytes());
+            SendResult sendResult = producer.send(msg);
+            System.out.println(sendResult);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+//            producer.shutdown();
+        }
+
+        return "Send ";
+    }
+
+    @RequestMapping("/consume")
+    @ResponseBody
+    public String consume() {
+        System.out.println("consume");
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("consumer_group1");
+        try {
+            consumer.setNamesrvAddr("localhost:9876");
+            consumer.setInstanceName("consumer_instance1");
+            consumer.setMessageModel(MessageModel.CLUSTERING);
+
+            consumer.subscribe("Topic1", "*");
+            consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+            consumer.setConsumeTimestamp("2017042221800");
+            consumer.registerMessageListener(new MessageListenerConcurrently() {
+                public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> list, ConsumeConcurrentlyContext consumeConcurrentlyContext) {
+                    System.out.println("Consumer:" + Thread.currentThread().getName() + ", msgs:" + list);
+                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                }
+            });
+            consumer.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+        }
+
+        return "Consume";
+    }
+
+    //------end-------
 }

@@ -54,4 +54,5 @@ public class User {
     public String toString() {
         return "" + id + "," + nickname + "," + firstName + "," + lastName;
     }
+
 }
